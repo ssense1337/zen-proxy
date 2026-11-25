@@ -88,6 +88,77 @@ It stays up until you stop it, so you point your agent at it once and keep using
 
 ---
 
+## Run with Docker
+
+From a checkout of this repository, start the proxy with Docker Compose:
+
+```bash
+docker compose up -d --build
+curl -fsS http://127.0.0.1:8787/health
+```
+
+Open the dashboard at `http://127.0.0.1:8787/` and point your agent at
+`http://127.0.0.1:8787/v1` with API key `public`. Claude Code can use the
+[manual settings](claude/zen-proxy.settings.json) while the container
+runs the proxy; Claude Code itself runs on your host.
+
+The image uses Bun, runs as the unprivileged `bun` user, and includes the model
+catalog, agent preamble, tool manifest, and dashboard assets. Docker checks the
+local `/health` endpoint without calling the upstream gateway. An initial
+`"ok":null` is normal until discovery finishes; container health indicates that
+the local HTTP server responds.
+
+Compose publishes the port on **localhost only**. To choose another host port:
+
+```bash
+ZEN_PROXY_PORT=8888 docker compose up -d
+```
+
+In that case, use `http://127.0.0.1:8888` in your browser and agent settings.
+
+Configuration is created at `/data/zen-proxy.json` and saved in the
+`zen-proxy-data` named volume. Dashboard edits survive container recreation and
+image updates. To inspect logs or stop the service while keeping configuration:
+
+```bash
+docker compose logs -f zen-proxy
+docker compose down
+```
+
+Re-run `docker compose up -d --build` after pulling project updates. Running
+`docker compose down -v` also deletes the saved configuration, including keys.
+
+### Plain Docker and custom configuration
+
+```bash
+docker build -t zen-proxy .
+docker volume create zen-proxy-data
+docker run -d --name zen-proxy --restart unless-stopped \
+  -p 127.0.0.1:8787:8787 \
+  -v zen-proxy-data:/data \
+  zen-proxy
+```
+
+The image sets `HOST=0.0.0.0`, `PORT=8787`, and
+`ZEN_PROXY_CONFIG=/data/zen-proxy.json`. Other [configuration variables](#configuration)
+can be supplied with Docker's `-e` or `--env-file`, or a Compose override's
+`environment` section. For example, set `ZEN_KEY` for your own upstream key or
+`PROXY_KEY` to require client authentication. Keep secrets out of the image and
+source control. Saved configuration takes precedence over environment defaults
+on later starts; use the dashboard to update an existing volume's settings.
+
+Mount the **whole `/data` directory** when supplying your own configuration: the
+proxy saves through a temporary file and atomic rename. A bind-mounted directory
+must be writable by the image's `bun` user (UID 1000). Keep the saved bind address
+at `0.0.0.0` and port at `8787` with the supplied Compose port mapping and health
+check. Containers on the same Docker network can reach the service at
+`http://zen-proxy:8787/v1`.
+
+To publish beyond localhost, change the published address and configure
+`proxyKey` / `PROXY_KEY`, TLS, and firewall rules for your deployment.
+
+---
+
 ## What you get
 
 | | |

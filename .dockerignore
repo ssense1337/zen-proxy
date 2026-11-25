@@ -1,0 +1,13 @@
+# Include only the files needed by the runtime image.
+**
+!Dockerfile
+!zen-proxy.mjs
+!models.json
+!agent-preamble.txt
+!agent-tools.json
+!LICENSE
+!public/
+!public/index.html
+!assets/
+!assets/favicon.png
+!assets/logo-128.png

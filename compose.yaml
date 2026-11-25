@@ -1,0 +1,11 @@
+services:
+  zen-proxy:
+    build: .
+    ports:
+      - "127.0.0.1:${ZEN_PROXY_PORT:-8787}:8787"
+    volumes:
+      - zen-proxy-data:/data
+    restart: unless-stopped
+
+volumes:
+  zen-proxy-data:
